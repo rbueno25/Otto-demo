@@ -1,7 +1,11 @@
 services:
   otto:
-    build: .
-    env_file: backend/.env
-    ports:
-      - "8000:8000"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
     restart: unless-stopped
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "8000"
