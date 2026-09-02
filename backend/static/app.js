@@ -9,19 +9,33 @@ const btnNew = document.getElementById("btnNew");
 let history = [];
 let busy = false;
 let chartId = 0;
+let currentController = null;
 
 marked.use({ breaks: true, gfm: true });
 
 function autoResize() {
   input.style.height = "auto";
   input.style.height = Math.min(input.scrollHeight, 140) + "px";
-  send.disabled = !input.value.trim() || busy;
+  send.disabled = busy ? false : !input.value.trim();
+}
+
+function setBusy(b) {
+  busy = b;
+  send.innerHTML = b ? '<span class="ms">stop</span>' : '<span class="ms">arrow_upward</span>';
+  send.title = b ? "Detener generación" : "Enviar";
+  send.classList.toggle("is-stop", b);
+  autoResize();
+}
+
+function stopGeneration() {
+  if (currentController) currentController.abort();
 }
 
 input.addEventListener("input", autoResize);
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
+    if (busy) return;
     form.requestSubmit();
   }
 });
@@ -166,13 +180,15 @@ function activeChip(msg, name) {
 }
 
 async function sendMessage(text) {
-  busy = true;
-  autoResize();
+  const controller = new AbortController();
+  currentController = controller;
+  setBusy(true);
   addUserMsg(text);
   history.push({ role: "user", content: text });
   const msg = addBotMsg();
   let full = "";
   let started = false;
+  let stopped = false;
 
   const markStarted = () => {
     if (!started) { started = true; startReply(msg); }
@@ -183,6 +199,7 @@ async function sendMessage(text) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages: history }),
+      signal: controller.signal,
     });
 
     if (!resp.ok) {
@@ -231,15 +248,21 @@ async function sendMessage(text) {
     }
   } catch (err) {
     markStarted();
-    full = "No se pudo obtener respuesta: " + err.message;
-    msg.md.textContent = full;
-    msg.content.querySelector(".bubble").classList.add("error");
+    if (err.name === "AbortError") {
+      stopped = true;
+      if (!full.trim()) full = "Generación detenida.";
+    } else {
+      full = "No se pudo obtener respuesta: " + err.message;
+      msg.content.querySelector(".bubble").classList.add("error");
+    }
   } finally {
     markStarted();
-    if (full) history.push({ role: "assistant", content: full });
+    if (full && !stopped) history.push({ role: "assistant", content: full });
     msg.timestamp.textContent = ((performance.now() - msg.t0) / 1000).toFixed(1) + "s";
-    busy = false;
+    currentController = null;
+    setBusy(false);
     input.value = "";
+    input.style.height = "";
     autoResize();
     input.focus();
   }
@@ -247,8 +270,12 @@ async function sendMessage(text) {
 
 form.addEventListener("submit", (e) => {
   e.preventDefault();
+  if (busy) {
+    stopGeneration();
+    return;
+  }
   const text = input.value.trim();
-  if (!text || busy) return;
+  if (!text) return;
   sendMessage(text);
 });
 

@@ -249,6 +249,9 @@ body {
 #send .ms { font-size: 20px; }
 #send:hover { background: var(--ai-grad-end); }
 #send:disabled { opacity: 0.4; cursor: not-allowed; }
+#send.is-stop { background: var(--error); }
+#send.is-stop .ms { font-size: 18px; }
+#send.is-stop:hover { background: #d63031; }
 .disclaimer { text-align: center; margin: 12px 0 0; font-family: "JetBrains Mono", monospace; font-size: 10px; color: rgba(67, 71, 79, 0.7); }
 
 @media (max-width: 640px) {
