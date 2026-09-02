@@ -9,3 +9,10 @@ services:
     environment:
       HOST: "0.0.0.0"
       PORT: "8000"
+    networks:
+      coolify: null
+
+networks:
+  coolify:
+    external: true
+    name: coolify
