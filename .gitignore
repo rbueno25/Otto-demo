@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.DS_Store
+node_modules/
+server.log
+server.err.log
+server.pid
+design_stitch/
+DATOS_REFERENCIA.json
